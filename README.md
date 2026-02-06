@@ -1,3 +1,3 @@
 ### LINK PARA TESTE 
 
-(https://teachablemachine.withgoogle.com/models/ul_S-kLGs/)
+https://teachablemachine.withgoogle.com/models/ul_S-kLGs/
