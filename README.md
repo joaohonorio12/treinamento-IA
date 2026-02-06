@@ -1,1 +1,1 @@
-[# treinamento-IA](https://teachablemachine.withgoogle.com/models/[...])
+(https://teachablemachine.withgoogle.com/models/ul_S-kLGs/)
