@@ -1,0 +1,1 @@
+[# treinamento-IA](https://teachablemachine.withgoogle.com/models/[...])
