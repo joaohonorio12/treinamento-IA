@@ -3,195 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catraca do Skatepark</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-
+    <title>Controle de Acesso - Skatepark</title>
     <style>
-        /* CSS Moderno e Limpo */
-        :root {
-            --cor-neutra: #e9ecef;
-            --cor-liberado: #28a745;
-            --cor-negado: #dc3545;
-            --cor-texto: #343a40;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--cor-neutra);
-            color: var(--cor-texto);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
             min-height: 100vh;
-            margin: 0;
-            transition: background-color 0.5s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        body.acesso-liberado { background-color: var(--cor-liberado); }
-        body.acesso-negado { background-color: var(--cor-negado); }
-
-        /* Cartão Central */
-        .card {
+        .container {
+            max-width: 600px;
+            width: 100%;
             background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-            transition: transform 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
         }
 
-        h1 { margin: 0 0 10px 0; font-size: 24px; }
-        p { color: #6c757d; margin-bottom: 30px; }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
 
-        /* Estilo do Botão de Upload */
-        input[type="file"] { display: none; }
-        
-        .btn-upload {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 24px;
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
             border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #fafafa;
             cursor: pointer;
-            font-weight: bold;
-            display: inline-block;
-            transition: background-color 0.2s;
+            transition: all 0.3s;
             margin-bottom: 20px;
         }
 
-        .btn-upload:hover { background-color: #0056b3; }
-
-        /* Container da Imagem */
-        #preview {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            display: none;
-            margin: 0 auto 20px auto;
-            border: 2px solid #dee2e6;
+        .upload-area:hover {
+            border-color: #999;
+            background: #f0f0f0;
         }
 
-        /* Mensagem de Status */
-        #status {
-            font-size: 18px;
-            font-weight: bold;
-            padding: 15px;
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .image-preview {
+            max-width: 100%;
             border-radius: 8px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .result-box {
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-granted {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .result-denied {
+            background: #f44336;
+            color: white;
+        }
+
+        .result-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-message {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .detection-info {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .detection-info.show {
+            display: block;
+        }
+
+        .detection-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .probability-item {
+            margin-bottom: 15px;
+        }
+
+        .probability-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .probability-bar-bg {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .probability-bar-fill {
+            background: #2196F3;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #1976D2;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>🛹 Controle de Acesso - Skatepark</h1>
+        <p class="subtitle">Envie uma foto do seu equipamento para verificar o acesso</p>
 
-    <div class="card">
-        <h1>🛹 Controle de Acesso</h1>
-        <p>Envie a foto do equipamento para verificação.</p>
-        
-        <label class="btn-upload">
-            <input type="file" id="imageUpload" accept="image/*">
-            📸 Escolher Imagem
-        </label>
-        
-        <img id="preview" alt="Imagem analisada">
-        
-        <div id="status">⏳ Carregando a inteligência artificial...</div>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">Clique aqui ou arraste uma imagem</div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <img id="imagePreview" class="image-preview">
+
+        <div class="loading" id="loading">
+            ⏳ Analisando imagem...
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-message" id="resultMessage"></div>
+        </div>
+
+        <div class="detection-info" id="detectionInfo">
+            <div class="detection-title">📊 Detalhes da Análise</div>
+            <div id="probabilityContainer"></div>
+        </div>
+
+        <button class="button" id="analyzeButton" style="display: none;" onclick="analyzeImage()">
+            Analisar Imagem
+        </button>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script>
-        // Caminho dos arquivos locais
-        const modelURL = "./meu_modelo/model.json";
-        const metadataURL = "./meu_modelo/metadata.json";
+        // IMPORTANTE: Cole aqui a URL do seu modelo do Teachable Machine
+        const URL = "https://teachablemachine.withgoogle.com/models/ul_S-kLGs/";
 
-        let model, maxPredictions;
+        let model;
+        let selectedImage;
 
-        // 1. Carrega o modelo ao abrir a página
-        async function init() {
+        // Carregar o modelo automaticamente quando a página carregar
+        async function loadModel() {
             try {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
                 model = await tmImage.load(modelURL, metadataURL);
-                maxPredictions = model.getTotalClasses();
-                document.getElementById("status").innerHTML = "✅ Sistema pronto! Aguardando imagem.";
+                console.log("Modelo carregado com sucesso!");
             } catch (error) {
-                document.getElementById("status").innerHTML = "❌ Erro ao carregar o modelo. Verifique a pasta './meu_modelo/'.";
+                alert("Erro ao carregar o modelo. Verifique se a URL está correta!");
                 console.error(error);
             }
         }
 
-        // 2. Lida com o upload da imagem
-        document.getElementById('imageUpload').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Carregar modelo ao iniciar
+        loadModel();
 
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const imgElement = document.getElementById('preview');
-                
-                // Reseta o visual da tela antes de analisar a nova imagem
-                document.body.className = "";
-                document.getElementById("status").innerHTML = "🔄 Analisando imagem...";
-                
-                // A ordem correta: primeiro diz o que fazer ao carregar, depois injeta a imagem.
-                // Isso evita o erro da tela travada.
-                imgElement.onload = function() {
-                    predict(imgElement);
-                };
+        // Configurar área de upload
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loading = document.getElementById('loading');
+        const resultBox = document.getElementById('resultBox');
+        const detectionInfo = document.getElementById('detectionInfo');
 
-                imgElement.src = e.target.result;
-                imgElement.style.display = 'block'; 
-            }
-            
-            reader.readAsDataURL(file);
+        // Prevenir comportamento padrão de arrastar e soltar
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
         });
 
-        // 3. Faz a previsão e toma a decisão
-        async function predict(imageElement) {
-            if (!model) {
-                document.getElementById("status").innerHTML = "❌ O modelo ainda não carregou.";
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Destacar área quando arrastar arquivo
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            });
+        });
+
+        // Manipular arquivos arrastados
+        uploadArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Manipular arquivo selecionado
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor, selecione uma imagem!');
                 return;
             }
 
-            try {
-                const prediction = await model.predict(imageElement);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedImage = e.target.result;
+                imagePreview.src = selectedImage;
+                imagePreview.style.display = 'block';
+                analyzeButton.style.display = 'block';
                 
-                let maiorProbabilidade = 0;
-                let melhorClasse = "";
+                // Esconder resultados anteriores
+                resultBox.classList.remove('show');
+                detectionInfo.classList.remove('show');
+            };
+            reader.readAsDataURL(file);
+        }
 
-                // Descobre qual classe teve a maior pontuação
-                for (let i = 0; i < maxPredictions; i++) {
-                    if (prediction[i].probability > maiorProbabilidade) {
-                        maiorProbabilidade = prediction[i].probability;
-                        melhorClasse = prediction[i].className;
+        async function analyzeImage() {
+            if (!selectedImage) {
+                alert('Por favor, selecione uma imagem primeiro!');
+                return;
+            }
+
+            if (!model) {
+                alert('Modelo ainda está carregando. Aguarde um momento!');
+                return;
+            }
+
+            // Mostrar loading
+            loading.classList.add('show');
+            analyzeButton.style.display = 'none';
+            resultBox.classList.remove('show');
+            detectionInfo.classList.remove('show');
+
+            // Criar elemento de imagem para análise
+            const img = new Image();
+            img.src = selectedImage;
+            
+            img.onload = async () => {
+                try {
+                    // Fazer predição
+                    const prediction = await model.predict(img);
+                    
+                    let skateProb = 0;
+                    let bikeProb = 0;
+                    let skateName = '';
+                    let bikeName = '';
+                    
+                    // Identificar classes e probabilidades
+                    for (let i = 0; i < prediction.length; i++) {
+                        const className = prediction[i].className.toLowerCase();
+                        const probability = prediction[i].probability;
+                        
+                        if (className.includes('Class 2')) {
+                            skateProb = probability;
+                            skateName = prediction[i].className;
+                        } else if (className.includes('bic') || className.includes('Class 1')) {
+                            bikeProb = probability;
+                            bikeName = prediction[i].className;
+                        }
                     }
+
+                    // Exibir probabilidades
+                    displayProbabilities(prediction);
+
+                    // Esconder loading
+                    loading.classList.remove('show');
+
+                    // Lógica de decisão
+                    const threshold = 0.70;
+                    
+                    if (skateProb > threshold) {
+                        // ACESSO LIBERADO
+                        showResult('granted', '✅', 'Acesso Liberado!', 
+                            'Bem-vindo ao skatepark! Divirta-se com segurança 🛹');
+                    } else if (bikeProb > threshold) {
+                        // ACESSO NEGADO
+                        showResult('denied', '🚫', 'Acesso Negado!', 
+                            'Esta área é exclusiva para skatistas. Por favor, use a ciclovia 🚴');
+                    } else {
+                        // Incerto
+                        showResult('', '🤔', 'Detecção Incerta', 
+                            'Não consegui identificar com certeza. Tire uma foto mais clara do equipamento.');
+                    }
+
+                    // Mostrar botão para analisar novamente
+                    analyzeButton.style.display = 'block';
+                    analyzeButton.textContent = 'Analisar Outra Imagem';
+
+                } catch (error) {
+                    loading.classList.remove('show');
+                    alert('Erro ao analisar imagem: ' + error.message);
+                    console.error(error);
                 }
+            };
+        }
 
-                const statusDiv = document.getElementById("status");
-                const limiteDeCerteza = 0.75; // Exige 75% de certeza para validar
+        function showResult(type, icon, title, message) {
+            const resultBox = document.getElementById('resultBox');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
 
-                // LÓGICA DE DECISÃO EXATA:
-                // Se tiver certeza E for Skate (Classe 2) -> Libera
-                if (maiorProbabilidade > limiteDeCerteza && melhorClasse === "Classe 2") {
-                    statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão de skate.";
-                    document.body.className = "acesso-liberado";
-                } 
-                // Se for Bike (Classe 1) OU não identificar com certeza nenhum dos dois -> Bloqueia
-                else {
-                    statusDiv.innerHTML = "❌ Acesso Negado! Pista exclusiva para Skates.";
-                    document.body.className = "acesso-negado";
-                }
+            resultIcon.textContent = icon;
+            resultTitle.textContent = title;
+            resultMessage.textContent = message;
 
-            } catch (erro) {
-                document.getElementById("status").innerHTML = "❌ Erro durante a análise.";
-                console.error("Erro na predição:", erro);
+            resultBox.className = 'result-box show';
+            if (type === 'granted') {
+                resultBox.classList.add('result-granted');
+            } else if (type === 'denied') {
+                resultBox.classList.add('result-denied');
             }
         }
 
-        // Inicia o sistema
-        init();
-    </script>
+        function displayProbabilities(predictions) {
+            const container = document.getElementById('probabilityContainer');
+            container.innerHTML = '';
 
+            predictions.forEach(pred => {
+                const percentage = (pred.probability * 100).toFixed(1);
+                
+                const item = document.createElement('div');
+                item.className = 'probability-item';
+                item.innerHTML = `
+                    <div class="probability-label">
+                        <span>${pred.className}</span>
+                        <span><strong>${percentage}%</strong></span>
+                    </div>
+                    <div class="probability-bar-bg">
+                        <div class="probability-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            detectionInfo.classList.add('show');
+        }
+    </script>
 </body>
 </html>
