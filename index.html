@@ -3,144 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catraca Inteligente - Upload de Imagem</title>
+    <title>Catraca do Skatepark</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <style>
+        /* CSS Moderno e Limpo */
+        :root {
+            --cor-neutra: #e9ecef;
+            --cor-liberado: #28a745;
+            --cor-negado: #dc3545;
+            --cor-texto: #343a40;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            transition: background-color 0.4s ease;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--cor-neutra);
+            color: var(--cor-texto);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
+            transition: background-color 0.5s ease;
         }
 
-        h1 { margin-bottom: 10px; }
+        body.acesso-liberado { background-color: var(--cor-liberado); }
+        body.acesso-negado { background-color: var(--cor-negado); }
 
-        /* Estilizando o botão de upload de arquivo para ficar bonitão */
-        input[type="file"] {
-            display: none;
+        /* Cartão Central */
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            transition: transform 0.3s ease;
         }
+
+        h1 { margin: 0 0 10px 0; font-size: 24px; }
+        p { color: #6c757d; margin-bottom: 30px; }
+
+        /* Estilo do Botão de Upload */
+        input[type="file"] { display: none; }
         
-        .custom-file-upload {
-            padding: 12px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            border-radius: 5px;
-            background-color: #333;
+        .btn-upload {
+            background-color: #007bff;
             color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
             display: inline-block;
             transition: background-color 0.2s;
-        }
-
-        .custom-file-upload:hover { background-color: #555; }
-
-        #image-container {
             margin-bottom: 20px;
-            min-height: 250px; /* Mantém um espaço fixo para a imagem não pular a tela */
         }
 
+        .btn-upload:hover { background-color: #0056b3; }
+
+        /* Container da Imagem */
         #preview {
-            max-width: 400px;
-            max-height: 400px;
-            border: 4px solid #333;
-            border-radius: 10px;
-            display: none; /* Escondido até carregar uma foto */
-        }
-
-        #status {
-            font-size: 24px;
-            font-weight: bold;
-            padding: 15px 30px;
+            max-width: 100%;
+            max-height: 300px;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            margin: 0 auto 20px auto;
+            border: 2px solid #dee2e6;
         }
 
-        .fundo-neutro { background-color: #e0e0e0; color: #333; }
-        .fundo-verde { background-color: #4CAF50; color: white; } 
-        .fundo-vermelho { background-color: #F44336; color: white; } 
+        /* Mensagem de Status */
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
     </style>
 </head>
-<body class="fundo-neutro">
+<body>
 
-    <h1>🛹 Catraca do Skatepark</h1>
-    <p>Envie uma foto do seu equipamento para liberar a entrada.</p>
-    
-    <label class="custom-file-upload">
-        <input type="file" id="imageUpload" accept="image/*">
-        📁 Escolher Imagem
-    </label>
-    
-    <div id="image-container">
-        <img id="preview" alt="Imagem enviada">
+    <div class="card">
+        <h1>🛹 Controle de Acesso</h1>
+        <p>Envie a foto do equipamento para verificação.</p>
+        
+        <label class="btn-upload">
+            <input type="file" id="imageUpload" accept="image/*">
+            📸 Escolher Imagem
+        </label>
+        
+        <img id="preview" alt="Imagem analisada">
+        
+        <div id="status">⏳ Carregando a inteligência artificial...</div>
     </div>
-    
-    <div id="status">Carregando o modelo (Aguarde...)</div>
 
     <script>
-
-        const modelURL = "./model/model.json";
-        const metadataURL = "./model/metadata.json";
+        // Caminho dos arquivos locais
+        const modelURL = "./meu_modelo/model.json";
+        const metadataURL = "./meu_modelo/metadata.json";
 
         let model, maxPredictions;
 
-        // Carrega o modelo assim que a página abre
+        // 1. Carrega o modelo ao abrir a página
         async function init() {
             try {
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
-                document.getElementById("status").innerHTML = "Modelo pronto! Envie uma foto.";
+                document.getElementById("status").innerHTML = "✅ Sistema pronto! Aguardando imagem.";
             } catch (error) {
-                document.getElementById("status").innerHTML = "Erro ao carregar o modelo. Verifique os arquivos.";
+                document.getElementById("status").innerHTML = "❌ Erro ao carregar o modelo. Verifique a pasta './meu_modelo/'.";
                 console.error(error);
             }
         }
 
-       // Fica de olho quando o usuário escolhe um arquivo
+        // 2. Lida com o upload da imagem
         document.getElementById('imageUpload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             
-            // Quando o navegador terminar de ler o arquivo do PC...
             reader.onload = function(e) {
                 const imgElement = document.getElementById('preview');
                 
-                // 1º PASSO: Avisar O QUE FAZER quando a imagem carregar
-                // (Isso precisa vir antes de colocar a imagem lá)
-                imgElement.onload = () => {
+                // Reseta o visual da tela antes de analisar a nova imagem
+                document.body.className = "";
+                document.getElementById("status").innerHTML = "🔄 Analisando imagem...";
+                
+                // A ordem correta: primeiro diz o que fazer ao carregar, depois injeta a imagem.
+                // Isso evita o erro da tela travada.
+                imgElement.onload = function() {
                     predict(imgElement);
                 };
 
-                // 2º PASSO: Agora sim, injetar a imagem no HTML
-                imgElement.src = e.target.result; 
+                imgElement.src = e.target.result;
                 imgElement.style.display = 'block'; 
-                
-                // Atualiza o texto da tela
-                document.getElementById("status").innerHTML = "Analisando a foto...";
-                document.body.className = "fundo-neutro";
             }
             
             reader.readAsDataURL(file);
         });
 
-        // Função que toma a DECISÃO
+        // 3. Faz a previsão e toma a decisão
         async function predict(imageElement) {
-            let statusDiv = document.getElementById("status");
-            let body = document.body;
-
-            // TRAVA DE SEGURANÇA: Verifica se o modelo realmente existe antes de prever
             if (!model) {
-                statusDiv.innerHTML = "❌ Erro: Modelo não carregou. Você está rodando um Live Server?";
+                document.getElementById("status").innerHTML = "❌ O modelo ainda não carregou.";
                 return;
             }
 
@@ -150,6 +160,7 @@
                 let maiorProbabilidade = 0;
                 let melhorClasse = "";
 
+                // Descobre qual classe teve a maior pontuação
                 for (let i = 0; i < maxPredictions; i++) {
                     if (prediction[i].probability > maiorProbabilidade) {
                         maiorProbabilidade = prediction[i].probability;
@@ -157,31 +168,30 @@
                     }
                 }
 
-                if (maiorProbabilidade > 0.75) { 
-                    if (melhorClasse.toLowerCase() === "Class 2") {
-                        statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão.";
-                        body.className = "fundo-verde";
-                    } 
-                    else if (melhorClasse.toLowerCase() === "Class 1" || melhorClasse.toLowerCase() === "bike") {
-                        statusDiv.innerHTML = "🚲 Acesso Negado! Pista exclusiva para Skates.";
-                        body.className = "fundo-vermelho";
-                    }
-                } else {
-                    statusDiv.innerHTML = "Não tenho certeza do que é isso. Tente outra foto.";
-                    body.className = "fundo-neutro";
+                const statusDiv = document.getElementById("status");
+                const limiteDeCerteza = 0.75; // Exige 75% de certeza para validar
+
+                // LÓGICA DE DECISÃO EXATA:
+                // Se tiver certeza E for Skate (Classe 2) -> Libera
+                if (maiorProbabilidade > limiteDeCerteza && melhorClasse === "Classe 2") {
+                    statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão de skate.";
+                    document.body.className = "acesso-liberado";
+                } 
+                // Se for Bike (Classe 1) OU não identificar com certeza nenhum dos dois -> Bloqueia
+                else {
+                    statusDiv.innerHTML = "❌ Acesso Negado! Pista exclusiva para Skates.";
+                    document.body.className = "acesso-negado";
                 }
+
             } catch (erro) {
-                statusDiv.innerHTML = "❌ Erro ao analisar a imagem. Veja o F12.";
-                console.error(erro);
+                document.getElementById("status").innerHTML = "❌ Erro durante a análise.";
+                console.error("Erro na predição:", erro);
             }
         }
 
-        // Inicia o carregamento do modelo
+        // Inicia o sistema
         init();
     </script>
 
 </body>
-
 </html>
-
-
