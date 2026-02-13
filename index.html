@@ -131,40 +131,44 @@
 
         // Função que toma a DECISÃO
         async function predict(imageElement) {
-            const prediction = await model.predict(imageElement);
-            
             let statusDiv = document.getElementById("status");
             let body = document.body;
 
-            let maiorProbabilidade = 0;
-            let melhorClasse = "";
-
-            for (let i = 0; i < maxPredictions; i++) {
-                if (prediction[i].probability > maiorProbabilidade) {
-                    maiorProbabilidade = prediction[i].probability;
-                    melhorClasse = prediction[i].className;
-                }
+            // TRAVA DE SEGURANÇA: Verifica se o modelo realmente existe antes de prever
+            if (!model) {
+                statusDiv.innerHTML = "❌ Erro: Modelo não carregou. Você está rodando um Live Server?";
+                return;
             }
 
-            // ---------------------------------------------------------
-            // 🧠 LÓGICA DE DECISÃO
-            // ---------------------------------------------------------
-            // Exige 75% de certeza para tomar uma decisão
-            if (maiorProbabilidade > 0.75) { 
+            try {
+                const prediction = await model.predict(imageElement);
                 
-                // ATENÇÃO: Confirme se os nomes das suas classes estão exatamente assim
-                if (melhorClasse.toLowerCase() === "Class 2") {
-                    statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão.";
-                    body.className = "fundo-verde";
-                } 
-                else if (melhorClasse.toLowerCase() === "Class 1" || melhorClasse.toLowerCase() === "bike") {
-                    statusDiv.innerHTML = "🚲 Acesso Negado! Pista exclusiva para Skates.";
-                    body.className = "fundo-vermelho";
+                let maiorProbabilidade = 0;
+                let melhorClasse = "";
+
+                for (let i = 0; i < maxPredictions; i++) {
+                    if (prediction[i].probability > maiorProbabilidade) {
+                        maiorProbabilidade = prediction[i].probability;
+                        melhorClasse = prediction[i].className;
+                    }
                 }
 
-            } else {
-                statusDiv.innerHTML = "Não tenho certeza do que é isso. Tente outra foto.";
-                body.className = "fundo-neutro";
+                if (maiorProbabilidade > 0.75) { 
+                    if (melhorClasse.toLowerCase() === "Class 2") {
+                        statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão.";
+                        body.className = "fundo-verde";
+                    } 
+                    else if (melhorClasse.toLowerCase() === "Class 1" || melhorClasse.toLowerCase() === "bike") {
+                        statusDiv.innerHTML = "🚲 Acesso Negado! Pista exclusiva para Skates.";
+                        body.className = "fundo-vermelho";
+                    }
+                } else {
+                    statusDiv.innerHTML = "Não tenho certeza do que é isso. Tente outra foto.";
+                    body.className = "fundo-neutro";
+                }
+            } catch (erro) {
+                statusDiv.innerHTML = "❌ Erro ao analisar a imagem. Veja o F12.";
+                console.error(erro);
             }
         }
 
@@ -175,3 +179,4 @@
 </body>
 
 </html>
+
