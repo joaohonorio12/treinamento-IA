@@ -44,6 +44,54 @@
             font-size: 14px;
         }
 
+        .config-box {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .config-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .config-item select,
+        .config-item input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+
         .upload-area {
             border: 2px dashed #ccc;
             border-radius: 8px;
@@ -106,6 +154,11 @@
 
         .result-denied {
             background: #f44336;
+            color: white;
+        }
+
+        .result-uncertain {
+            background: #FF9800;
             color: white;
         }
 
@@ -185,6 +238,11 @@
             background: #1976D2;
         }
 
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         .loading {
             text-align: center;
             color: #666;
@@ -195,13 +253,52 @@
         .loading.show {
             display: block;
         }
+
+        @media (max-width: 600px) {
+            .config-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🛹 Controle de Acesso - Skatepark</h1>
-        <p class="subtitle">Envie uma foto do seu equipamento para verificar o acesso</p>
+        <p class="subtitle">Configure as classes e envie uma imagem para análise</p>
 
+        <!-- CONFIGURAÇÃO -->
+        <div class="config-box">
+            <div class="config-title">⚙️ Configuração do Modelo</div>
+            
+            <div class="config-row">
+                <div class="config-item">
+                    <label for="skateClass">Qual classe é SKATE?</label>
+                    <select id="skateClass">
+                        <option value="0">Class 1</option>
+                        <option value="1">Class 2</option>
+                    </select>
+                </div>
+                
+                <div class="config-item">
+                    <label for="bikeClass">Qual classe é BICICLETA?</label>
+                    <select id="bikeClass">
+                        <option value="1">Class 2</option>
+                        <option value="0">Class 1</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="config-item">
+                <label for="threshold">Confiança mínima para decisão (%)</label>
+                <input type="number" id="threshold" value="70" min="50" max="100" step="5">
+            </div>
+
+            <div class="info-text">
+                💡 <strong>Dica:</strong> Olhe as barras de detecção após analisar uma imagem para descobrir qual classe corresponde a cada equipamento. Se "Class 1" tiver 96% ao mostrar um skate, então Class 1 = Skate.
+            </div>
+        </div>
+
+        <!-- UPLOAD -->
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
             <div class="upload-icon">📸</div>
             <div class="upload-text">Clique aqui ou arraste uma imagem</div>
@@ -214,12 +311,14 @@
             ⏳ Analisando imagem...
         </div>
 
+        <!-- RESULTADO -->
         <div class="result-box" id="resultBox">
             <div class="result-icon" id="resultIcon"></div>
             <div class="result-title" id="resultTitle"></div>
             <div class="result-message" id="resultMessage"></div>
         </div>
 
+        <!-- DETALHES -->
         <div class="detection-info" id="detectionInfo">
             <div class="detection-title">📊 Detalhes da Análise</div>
             <div id="probabilityContainer"></div>
@@ -239,20 +338,19 @@
         let model;
         let selectedImage;
 
-        // Carregar o modelo automaticamente quando a página carregar
+        // Carregar o modelo automaticamente
         async function loadModel() {
             try {
                 const modelURL = URL + "model.json";
                 const metadataURL = URL + "metadata.json";
                 model = await tmImage.load(modelURL, metadataURL);
-                console.log("Modelo carregado com sucesso!");
+                console.log("✅ Modelo carregado com sucesso!");
             } catch (error) {
-                alert("Erro ao carregar o modelo. Verifique se a URL está correta!");
+                alert("❌ Erro ao carregar o modelo. Verifique se a URL está correta!");
                 console.error(error);
             }
         }
 
-        // Carregar modelo ao iniciar
         loadModel();
 
         // Configurar área de upload
@@ -264,7 +362,7 @@
         const resultBox = document.getElementById('resultBox');
         const detectionInfo = document.getElementById('detectionInfo');
 
-        // Prevenir comportamento padrão de arrastar e soltar
+        // Prevenir comportamento padrão
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             uploadArea.addEventListener(eventName, preventDefaults, false);
         });
@@ -274,7 +372,7 @@
             e.stopPropagation();
         }
 
-        // Destacar área quando arrastar arquivo
+        // Destacar área ao arrastar
         ['dragenter', 'dragover'].forEach(eventName => {
             uploadArea.addEventListener(eventName, () => {
                 uploadArea.classList.add('dragover');
@@ -333,13 +431,24 @@
                 return;
             }
 
+            // Pegar configurações
+            const skateClassIndex = parseInt(document.getElementById('skateClass').value);
+            const bikeClassIndex = parseInt(document.getElementById('bikeClass').value);
+            const threshold = parseFloat(document.getElementById('threshold').value) / 100;
+
+            // Validar configuração
+            if (skateClassIndex === bikeClassIndex) {
+                alert('⚠️ Erro: Você selecionou a mesma classe para Skate e Bicicleta! Por favor, escolha classes diferentes.');
+                return;
+            }
+
             // Mostrar loading
             loading.classList.add('show');
             analyzeButton.style.display = 'none';
             resultBox.classList.remove('show');
             detectionInfo.classList.remove('show');
 
-            // Criar elemento de imagem para análise
+            // Criar elemento de imagem
             const img = new Image();
             img.src = selectedImage;
             
@@ -348,49 +457,37 @@
                     // Fazer predição
                     const prediction = await model.predict(img);
                     
-                    let skateProb = 0;
-                    let bikeProb = 0;
-                    let skateName = '';
-                    let bikeName = '';
+                    // Pegar probabilidades baseado na configuração
+                    const skateProb = prediction[skateClassIndex].probability;
+                    const bikeProb = prediction[bikeClassIndex].probability;
                     
-                    // Identificar classes e probabilidades
-                    for (let i = 0; i < prediction.length; i++) {
-                        const className = prediction[i].className.toLowerCase();
-                        const probability = prediction[i].probability;
-                        
-                        if (className.includes('Class 2')) {
-                            skateProb = probability;
-                            skateName = prediction[i].className;
-                        } else if (className.includes('bic') || className.includes('Class 1')) {
-                            bikeProb = probability;
-                            bikeName = prediction[i].className;
-                        }
-                    }
+                    console.log(`Skate (Class ${skateClassIndex + 1}): ${(skateProb * 100).toFixed(1)}%`);
+                    console.log(`Bike (Class ${bikeClassIndex + 1}): ${(bikeProb * 100).toFixed(1)}%`);
+                    console.log(`Threshold: ${(threshold * 100).toFixed(0)}%`);
 
                     // Exibir probabilidades
-                    displayProbabilities(prediction);
+                    displayProbabilities(prediction, skateClassIndex, bikeClassIndex);
 
                     // Esconder loading
                     loading.classList.remove('show');
 
                     // Lógica de decisão
-                    const threshold = 0.70;
-                    
-                    if (skateProb > threshold) {
-                        // ACESSO LIBERADO
+                    if (skateProb > threshold && skateProb > bikeProb) {
+                        // ACESSO LIBERADO - É um skate!
                         showResult('granted', '✅', 'Acesso Liberado!', 
-                            'Bem-vindo ao skatepark! Divirta-se com segurança 🛹');
-                    } else if (bikeProb > threshold) {
-                        // ACESSO NEGADO
+                            `Bem-vindo ao skatepark! Confiança: ${(skateProb * 100).toFixed(1)}% 🛹`);
+                    } else if (bikeProb > threshold && bikeProb > skateProb) {
+                        // ACESSO NEGADO - É uma bicicleta!
                         showResult('denied', '🚫', 'Acesso Negado!', 
-                            'Esta área é exclusiva para skatistas. Por favor, use a ciclovia 🚴');
+                            `Esta área é exclusiva para skatistas. Confiança: ${(bikeProb * 100).toFixed(1)}% 🚴`);
                     } else {
                         // Incerto
-                        showResult('', '🤔', 'Detecção Incerta', 
-                            'Não consegui identificar com certeza. Tire uma foto mais clara do equipamento.');
+                        const highestProb = Math.max(skateProb, bikeProb);
+                        showResult('uncertain', '🤔', 'Detecção Incerta', 
+                            `Confiança máxima: ${(highestProb * 100).toFixed(1)}%. Preciso de pelo menos ${(threshold * 100).toFixed(0)}% para decidir. Tire uma foto mais clara!`);
                     }
 
-                    // Mostrar botão para analisar novamente
+                    // Mostrar botão para nova análise
                     analyzeButton.style.display = 'block';
                     analyzeButton.textContent = 'Analisar Outra Imagem';
 
@@ -417,21 +514,31 @@
                 resultBox.classList.add('result-granted');
             } else if (type === 'denied') {
                 resultBox.classList.add('result-denied');
+            } else if (type === 'uncertain') {
+                resultBox.classList.add('result-uncertain');
             }
         }
 
-        function displayProbabilities(predictions) {
+        function displayProbabilities(predictions, skateIndex, bikeIndex) {
             const container = document.getElementById('probabilityContainer');
             container.innerHTML = '';
 
-            predictions.forEach(pred => {
+            predictions.forEach((pred, index) => {
                 const percentage = (pred.probability * 100).toFixed(1);
+                
+                // Identificar qual classe é qual
+                let label = pred.className;
+                if (index === skateIndex) {
+                    label += ' 🛹 (Skate)';
+                } else if (index === bikeIndex) {
+                    label += ' 🚴 (Bicicleta)';
+                }
                 
                 const item = document.createElement('div');
                 item.className = 'probability-item';
                 item.innerHTML = `
                     <div class="probability-label">
-                        <span>${pred.className}</span>
+                        <span>${label}</span>
                         <span><strong>${percentage}%</strong></span>
                     </div>
                     <div class="probability-bar-bg">
@@ -443,6 +550,17 @@
 
             detectionInfo.classList.add('show');
         }
+
+        // Sincronizar selects (se mudar um, ajustar o outro)
+        document.getElementById('skateClass').addEventListener('change', function() {
+            const bikeSelect = document.getElementById('bikeClass');
+            bikeSelect.value = this.value === '0' ? '1' : '0';
+        });
+
+        document.getElementById('bikeClass').addEventListener('change', function() {
+            const skateSelect = document.getElementById('skateClass');
+            skateSelect.value = this.value === '0' ? '1' : '0';
+        });
     </script>
 </body>
 </html>
