@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catraca Inteligente - Upload de Imagem</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            transition: background-color 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        /* Estilizando o botão de upload de arquivo para ficar bonitão */
+        input[type="file"] {
+            display: none;
+        }
+        
+        .custom-file-upload {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #333;
+            color: white;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+
+        .custom-file-upload:hover { background-color: #555; }
+
+        #image-container {
+            margin-bottom: 20px;
+            min-height: 250px; /* Mantém um espaço fixo para a imagem não pular a tela */
+        }
+
+        #preview {
+            max-width: 400px;
+            max-height: 400px;
+            border: 4px solid #333;
+            border-radius: 10px;
+            display: none; /* Escondido até carregar uma foto */
+        }
+
+        #status {
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .fundo-neutro { background-color: #e0e0e0; color: #333; }
+        .fundo-verde { background-color: #4CAF50; color: white; } 
+        .fundo-vermelho { background-color: #F44336; color: white; } 
+    </style>
+</head>
+<body class="fundo-neutro">
+
+    <h1>🛹 Catraca do Skatepark</h1>
+    <p>Envie uma foto do seu equipamento para liberar a entrada.</p>
+    
+    <label class="custom-file-upload">
+        <input type="file" id="imageUpload" accept="image/*">
+        📁 Escolher Imagem
+    </label>
+    
+    <div id="image-container">
+        <img id="preview" alt="Imagem enviada">
+    </div>
+    
+    <div id="status">Carregando o modelo (Aguarde...)</div>
+
+    <script>
+
+        const modelURL = "./model/model.json";
+        const metadataURL = "./model/metadata.json";
+
+        let model, maxPredictions;
+
+        // Carrega o modelo assim que a página abre
+        async function init() {
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                document.getElementById("status").innerHTML = "Modelo pronto! Envie uma foto.";
+            } catch (error) {
+                document.getElementById("status").innerHTML = "Erro ao carregar o modelo. Verifique os arquivos.";
+                console.error(error);
+            }
+        }
+
+        // Fica de olho quando o usuário escolhe um arquivo
+        document.getElementById('imageUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            // Quando terminar de ler o arquivo...
+            reader.onload = function(e) {
+                const imgElement = document.getElementById('preview');
+                imgElement.src = e.target.result; // Coloca a imagem na tela
+                imgElement.style.display = 'block'; 
+                
+                // Muda o status e volta a cor pro neutro
+                document.getElementById("status").innerHTML = "Analisando a foto...";
+                document.body.className = "fundo-neutro";
+
+                // Assim que a imagem carregar no HTML, faz a predição
+                imgElement.onload = () => {
+                    predict(imgElement);
+                }
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // Função que toma a DECISÃO
+        async function predict(imageElement) {
+            const prediction = await model.predict(imageElement);
+            
+            let statusDiv = document.getElementById("status");
+            let body = document.body;
+
+            let maiorProbabilidade = 0;
+            let melhorClasse = "";
+
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > maiorProbabilidade) {
+                    maiorProbabilidade = prediction[i].probability;
+                    melhorClasse = prediction[i].className;
+                }
+            }
+
+            // ---------------------------------------------------------
+            // 🧠 LÓGICA DE DECISÃO
+            // ---------------------------------------------------------
+            // Exige 75% de certeza para tomar uma decisão
+            if (maiorProbabilidade > 0.75) { 
+                
+                // ATENÇÃO: Confirme se os nomes das suas classes estão exatamente assim
+                if (melhorClasse.toLowerCase() === "skate") {
+                    statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão.";
+                    body.className = "fundo-verde";
+                } 
+                else if (melhorClasse.toLowerCase() === "bicicleta" || melhorClasse.toLowerCase() === "bike") {
+                    statusDiv.innerHTML = "🚲 Acesso Negado! Pista exclusiva para Skates.";
+                    body.className = "fundo-vermelho";
+                }
+
+            } else {
+                statusDiv.innerHTML = "Não tenho certeza do que é isso. Tente outra foto.";
+                body.className = "fundo-neutro";
+            }
+        }
+
+        // Inicia o carregamento do modelo
+        init();
+    </script>
+
+</body>
+</html>
