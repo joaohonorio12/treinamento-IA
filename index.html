@@ -104,28 +104,32 @@
             }
         }
 
-        // Fica de olho quando o usuário escolhe um arquivo
+       // Fica de olho quando o usuário escolhe um arquivo
         document.getElementById('imageUpload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             
-            // Quando terminar de ler o arquivo...
+            // Quando o navegador terminar de ler o arquivo do PC...
             reader.onload = function(e) {
                 const imgElement = document.getElementById('preview');
-                imgElement.src = e.target.result; // Coloca a imagem na tela
-                imgElement.style.display = 'block'; 
                 
-                // Muda o status e volta a cor pro neutro
-                document.getElementById("status").innerHTML = "Analisando a foto...";
-                document.body.className = "fundo-neutro";
-
-                // Assim que a imagem carregar no HTML, faz a predição
+                // 1º PASSO: Avisar O QUE FAZER quando a imagem carregar
+                // (Isso precisa vir antes de colocar a imagem lá)
                 imgElement.onload = () => {
                     predict(imgElement);
-                }
+                };
+
+                // 2º PASSO: Agora sim, injetar a imagem no HTML
+                imgElement.src = e.target.result; 
+                imgElement.style.display = 'block'; 
+                
+                // Atualiza o texto da tela
+                document.getElementById("status").innerHTML = "Analisando a foto...";
+                document.body.className = "fundo-neutro";
             }
+            
             reader.readAsDataURL(file);
         });
 
@@ -179,4 +183,5 @@
 </body>
 
 </html>
+
 
