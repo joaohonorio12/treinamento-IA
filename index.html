@@ -153,11 +153,11 @@
             if (maiorProbabilidade > 0.75) { 
                 
                 // ATENÇÃO: Confirme se os nomes das suas classes estão exatamente assim
-                if (melhorClasse.toLowerCase() === "skate") {
+                if (melhorClasse.toLowerCase() === "Class 2") {
                     statusDiv.innerHTML = "🛹 Acesso Liberado! Boa sessão.";
                     body.className = "fundo-verde";
                 } 
-                else if (melhorClasse.toLowerCase() === "bicicleta" || melhorClasse.toLowerCase() === "bike") {
+                else if (melhorClasse.toLowerCase() === "Class 1" || melhorClasse.toLowerCase() === "bike") {
                     statusDiv.innerHTML = "🚲 Acesso Negado! Pista exclusiva para Skates.";
                     body.className = "fundo-vermelho";
                 }
@@ -173,4 +173,5 @@
     </script>
 
 </body>
+
 </html>
